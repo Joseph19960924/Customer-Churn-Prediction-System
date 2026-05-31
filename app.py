@@ -1,98 +1,100 @@
-```python
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import joblib
-import os
+import matplotlib.pyplot as plt
 
 # =========================
 # PAGE CONFIG
 # =========================
 st.set_page_config(
-    page_title="Customer Churn Prediction",
+    page_title="Customer Churn Prediction System",
     layout="wide"
 )
 
 # =========================
 # LOAD MODEL SAFELY
 # =========================
-BASE_DIR = os.path.dirname(__file__)
-
-MODEL_PATH = os.path.join(BASE_DIR, "churn_model.pkl")
-COLUMNS_PATH = os.path.join(BASE_DIR, "model_columns.pkl")
-
 @st.cache_resource
 def load_model():
-    model = joblib.load(MODEL_PATH)
-    columns = joblib.load(COLUMNS_PATH)
-    return model, columns
+    model = joblib.load("churn_model.pkl")
+    model_columns = joblib.load("model_columns.pkl")
+    return model, model_columns
 
-model, model_columns = load_model()
-
-# =========================
-# TITLE
-# =========================
-st.title("🎯 Customer Churn Prediction System")
-st.write("Predict customer churn risk using machine learning")
+try:
+    model, model_columns = load_model()
+except Exception:
+    st.error("❌ Model could not be loaded. Ensure churn_model.pkl and model_columns.pkl exist.")
+    st.stop()
 
 # =========================
-# INPUTS
+# HEADER
+# =========================
+st.title("Customer Churn Prediction System")
+st.write("AI-powered customer retention analytics")
+
+st.divider()
+
+# =========================
+# SIDEBAR INPUTS
 # =========================
 with st.sidebar:
-    st.header("Customer Information")
+    st.header("Customer Profile")
 
     age = st.number_input("Age", 18, 100, 30)
     total_orders = st.number_input("Total Orders", 0, 1000, 10)
     total_spend = st.number_input("Total Spend", 0.0, 100000.0, 500.0)
-    avg_order_value = st.number_input("Avg Order Value", 0.0, 10000.0, 50.0)
-    days_since_last = st.number_input("Days Since Last Purchase", 0, 1000, 30)
-    reviews = st.number_input("Reviews Given", 0, 500, 5)
-    rating = st.slider("Avg Rating", 0.0, 5.0, 3.5)
-    returns = st.number_input("Returns Made", 0, 100, 0)
-    wishlist = st.number_input("Wishlist Items", 0, 500, 10)
-    newsletter = st.radio("Newsletter Subscribed", ["Yes", "No"])
-    newsletter_val = 1 if newsletter == "Yes" else 0
+    avg_order_value = st.number_input("Average Order Value", 0.0, 10000.0, 50.0)
+    days_since_last_purchase = st.number_input("Days Since Last Purchase", 0, 1000, 30)
+
+    reviews_given = st.number_input("Reviews Given", 0, 500, 5)
+    avg_review_score = st.slider("Average Review Score", 0.0, 5.0, 3.5)
+
+    returns_made = st.number_input("Returns Made", 0, 100, 0)
+    wishlist_items = st.number_input("Wishlist Items", 0, 500, 10)
+
+    newsletter_subscribed = st.radio("Newsletter Subscribed", ["Yes", "No"])
+    newsletter_value = 1 if newsletter_subscribed == "Yes" else 0
 
 # =========================
 # PREDICTION
 # =========================
-def predict():
-    data = pd.DataFrame([{
+if st.button("Predict Churn Risk"):
+
+    input_data = pd.DataFrame([{
         "age": age,
         "total_orders": total_orders,
         "total_spend_usd": total_spend,
         "avg_order_value_usd": avg_order_value,
-        "days_since_last_purchase": days_since_last,
-        "reviews_given": reviews,
-        "avg_review_score": rating,
-        "returns_made": returns,
-        "wishlist_items": wishlist,
-        "newsletter_subscribed": newsletter_val
+        "days_since_last_purchase": days_since_last_purchase,
+        "reviews_given": reviews_given,
+        "avg_review_score": avg_review_score,
+        "returns_made": returns_made,
+        "wishlist_items": wishlist_items,
+        "newsletter_subscribed": newsletter_value
     }])
 
-    data = data.reindex(columns=model_columns, fill_value=0)
+    # Align columns
+    input_data = input_data.reindex(columns=model_columns, fill_value=0)
 
-    prob = model.predict_proba(data)[0][1]
-    pred = model.predict(data)[0]
+    # Prediction
+    prediction = model.predict(input_data)[0]
 
-    return pred, prob
+    # Safe probability handling
+    if hasattr(model, "predict_proba"):
+        probability = model.predict_proba(input_data)[0][1]
+    else:
+        probability = 0.5  # fallback
 
-# =========================
-# RUN PREDICTION
-# =========================
-if st.button("Predict Churn Risk"):
-
-    pred, prob = predict()
-
-    if prob >= 0.7:
-        status = "High Risk"
+    # Risk level
+    if probability >= 0.7:
+        risk = "HIGH RISK"
         color = "red"
-    elif prob >= 0.4:
-        status = "Medium Risk"
+    elif probability >= 0.4:
+        risk = "MEDIUM RISK"
         color = "orange"
     else:
-        status = "Low Risk"
+        risk = "LOW RISK"
         color = "green"
 
     # =========================
@@ -100,39 +102,22 @@ if st.button("Predict Churn Risk"):
     # =========================
     st.subheader("Results")
 
-    col1, col2, col3 = st.columns(3)
+    st.markdown(f"### Prediction: **{risk}**")
+    st.markdown(f"### Churn Probability: **{probability:.2%}**")
 
-    col1.metric("Risk Level", status)
-    col2.metric("Churn Probability", f"{prob:.1%}")
-    col3.metric("Prediction", "Churn" if pred == 1 else "Stay")
-
-    # =========================
-    # CHART
-    # =========================
+    # Chart
     fig, ax = plt.subplots()
-
-    ax.barh(["Churn Risk"], [prob], color=color)
+    ax.barh(["Churn"], [probability], color=color)
     ax.set_xlim(0, 1)
-    ax.axvline(0.4, linestyle="--", color="orange")
-    ax.axvline(0.7, linestyle="--", color="red")
-
+    ax.set_title("Churn Probability")
     st.pyplot(fig)
 
-    # =========================
-    # SUMMARY
-    # =========================
-    st.subheader("Insight")
+    # Insights
+    st.subheader("Insights")
 
-    if prob >= 0.7:
-        st.error("High churn risk — immediate action needed.")
-    elif prob >= 0.4:
-        st.warning("Medium churn risk — engagement recommended.")
+    if probability > 0.7:
+        st.warning("Customer is likely to churn. Immediate action required.")
+    elif probability > 0.4:
+        st.info("Customer is at risk. Engage with marketing campaigns.")
     else:
-        st.success("Low churn risk — customer is stable.")
-
-# =========================
-# FOOTER
-# =========================
-st.markdown("---")
-st.caption("Machine Learning Churn Prediction App")
-```
+        st.success("Customer is healthy and likely to stay.")
