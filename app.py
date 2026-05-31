@@ -295,12 +295,13 @@ def display_metrics(probability: float, risk_level: str, risk_color: str):
     
     for col, value, label, color in metrics:
         with col:
-            st.markdown(f"""
-                <div class="metric-card">
-                    <h3 style="color: {color}; margin: 0;">{value}</h3>
-                    <p style="color: #666; margin: 0.5rem 0 0 0;">{label}</p>
-                </div>
-            """, unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="metric-card">'
+                f'<h3 style="color: {color}; margin: 0;">{value}</h3>'
+                f'<p style="color: #666; margin: 0.5rem 0 0 0;">{label}</p>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
 
 
 def display_probability_gauge(probability: float, risk_color: str):
@@ -335,32 +336,32 @@ def display_recommendations(probability: float, risk_factors: List[str]):
     st.markdown("## 💡 Recommendations")
     
     if probability >= 0.7:
-        st.error("""
-        **🚨 Immediate Actions Required:**
-        - Send personalized discount offer (20-30% off)
-        - Proactive customer outreach via phone/email
-        - Request feedback survey with incentive
-        - Invite to loyalty program with bonus points
-        - Schedule re-engagement campaign
-        """)
+        st.error(
+            "**🚨 Immediate Actions Required:**\n\n"
+            "- Send personalized discount offer (20-30% off)\n"
+            "- Proactive customer outreach via phone/email\n"
+            "- Request feedback survey with incentive\n"
+            "- Invite to loyalty program with bonus points\n"
+            "- Schedule re-engagement campaign"
+        )
     elif probability >= 0.4:
-        st.warning("""
-        **⚠️ Preventive Actions:**
-        - Send personalized product recommendations
-        - Invite to loyalty program
-        - Share educational content
-        - Offer free shipping on next purchase
-        - Request product reviews
-        """)
+        st.warning(
+            "**⚠️ Preventive Actions:**\n\n"
+            "- Send personalized product recommendations\n"
+            "- Invite to loyalty program\n"
+            "- Share educational content\n"
+            "- Offer free shipping on next purchase\n"
+            "- Request product reviews"
+        )
     else:
-        st.success("""
-        **✅ Growth Actions:**
-        - Upsell and cross-sell opportunities
-        - Referral program invitation
-        - VIP program consideration
-        - Send thank you note with special offer
-        - Early access to new products
-        """)
+        st.success(
+            "**✅ Growth Actions:**\n\n"
+            "- Upsell and cross-sell opportunities\n"
+            "- Referral program invitation\n"
+            "- VIP program consideration\n"
+            "- Send thank you note with special offer\n"
+            "- Early access to new products"
+        )
 
 
 def display_value_analysis(total_spend: float, probability: float):
@@ -390,28 +391,28 @@ def display_welcome_message():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown("""
-        ### 📊 Analysis
-        - Churn probability scoring
-        - Risk factor identification
-        - Confidence metrics
-        """)
+        st.markdown(
+            "### 📊 Analysis\n\n"
+            "- Churn probability scoring\n"
+            "- Risk factor identification\n"
+            "- Confidence metrics"
+        )
     
     with col2:
-        st.markdown("""
-        ### 🎯 Risk Levels
-        - 🟢 Low: <40% probability
-        - 🟡 Medium: 40-70%
-        - 🔴 High: >70%
-        """)
+        st.markdown(
+            "### 🎯 Risk Levels\n\n"
+            "- 🟢 Low: <40% probability\n"
+            "- 🟡 Medium: 40-70%\n"
+            "- 🔴 High: >70%"
+        )
     
     with col3:
-        st.markdown("""
-        ### 💡 Value
-        - Reduce customer churn
-        - Increase retention
-        - Maximize CLV
-        """)
+        st.markdown(
+            "### 💡 Value\n\n"
+            "- Reduce customer churn\n"
+            "- Increase retention\n"
+            "- Maximize CLV"
+        )
 
 
 # ============================================================================
@@ -457,7 +458,8 @@ def main():
         
         # Get risk level
         risk_level, risk_class, risk_emoji = get_risk_level(probability)
-        risk_color = {"High Risk": "#c62828", "Medium Risk": "#f9a825", "Low Risk": "#2e7d32"}[risk_level]
+        risk_color_map = {"High Risk": "#c62828", "Medium Risk": "#f9a825", "Low Risk": "#2e7d32"}
+        risk_color = risk_color_map[risk_level]
         
         # Display results
         st.markdown(f"## {risk_emoji} Analysis Results")
@@ -477,18 +479,31 @@ def main():
         st.markdown("---")
         st.markdown("## 🎯 Risk Assessment")
         
-        st.markdown(f"""
+        risk_text = f"""
             <div class="{risk_class}">
                 <strong>Risk Level: {risk_level}</strong><br>
                 Churn Probability: {probability:.1%}<br><br>
                 
                 <strong>⚠️ Risk Factors ({len(risk_factors)}):</strong><br>
-                {chr(10).join(['• ' + f for f in risk_factors]) if risk_factors else '✅ No significant risk factors identified'}<br><br>
-                
-                <strong>✅ Positive Factors ({len(positive_factors)}):</strong><br>
-                {chr(10).join(['• ' + f for f in positive_factors]) if positive_factors else 'ℹ️ No significant positive factors identified'}
-            </div>
-        """, unsafe_allow_html=True)
+        """
+        
+        if risk_factors:
+            for factor in risk_factors:
+                risk_text += f"• {factor}<br>"
+        else:
+            risk_text += "✅ No significant risk factors identified<br>"
+        
+        risk_text += "<br><strong>✅ Positive Factors ({len(positive_factors)}):</strong><br>"
+        
+        if positive_factors:
+            for factor in positive_factors:
+                risk_text += f"• {factor}<br>"
+        else:
+            risk_text += "ℹ️ No significant positive factors identified<br>"
+        
+        risk_text += "</div>"
+        
+        st.markdown(risk_text, unsafe_allow_html=True)
         
         # Display recommendations
         display_recommendations(probability, risk_factors)
@@ -500,12 +515,13 @@ def main():
         display_welcome_message()
     
     # Footer
-    st.markdown("""
-        <div class="footer">
-            <p>🤖 Powered by Machine Learning | 📊 Analyzes 10 customer behavior factors</p>
-            <p style="font-size: 0.8rem;">Predictions are estimates based on behavioral patterns | Use with business judgment</p>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        '<div class="footer">'
+        '<p>🤖 Powered by Machine Learning | 📊 Analyzes 10 customer behavior factors</p>'
+        '<p style="font-size: 0.8rem;">Predictions are estimates based on behavioral patterns | Use with business judgment</p>'
+        '</div>',
+        unsafe_allow_html=True
+    )
 
 
 if __name__ == "__main__":
